@@ -2,26 +2,28 @@ from Layer import Layer
 from Neuron import Neuron
 from Weight import Weight
 import numpy as np
-from static_functions import relu_single,ErrorDerivative,reluDerivative
+from static_functions import sigmoid_single, error_derivative, sigmoid_derivative
 
 class FullyConnectedLayer(Layer):
 
-    def __init__(self,numberOfNeurons: int,prevLayer: Layer,isFirstLayer : bool = False,isLastLayer: bool = False):
-        self.numberOfNuerons : int = numberOfNeurons
-        self.neurons : list[Neuron] = []
-        self.weights : list[Weight] = []
-        self.inputVector : np.ndarray 
+    def __init__(self, numberOfNeurons: int, prevLayer: Layer, 
+                 isFirstLayer: bool = False, isLastLayer: bool = False):
+        self.numberOfNeurons = numberOfNeurons
+        self.neurons: list[Neuron] = []
+        self.weights: list[Weight] = []
+        self.inputVector: np.ndarray = None
         self.prevLayer = prevLayer
 
-        self.isFirstLayer : bool
-        self.isLastLayer : bool
         self.isFirstLayer = isFirstLayer
         self.isLastLayer = isLastLayer
+        self.outputMatrix : np.ndarray = None
 
+        # Initialize neurons with a starting bias (0 for first layer, else 0.5)
         for i in range(numberOfNeurons):
-            self.neurons.append(Neuron( 0 if isFirstLayer else 0.5))
+            self.neurons.append(Neuron(0 if isFirstLayer else 0.5))
 
-        if(not isFirstLayer):
+        # If not the first layer, create weights connecting neurons from the previous layer
+        if not isFirstLayer:
             if isinstance(prevLayer, FullyConnectedLayer):
                 for neuron in prevLayer.neurons:
                     for i in range(numberOfNeurons):
@@ -29,66 +31,80 @@ class FullyConnectedLayer(Layer):
                         neuron.forwardWeights.append(weight)
                         self.weights.append(weight)
                         weight.nextNeuron = self.neurons[i]
-        pass
+                        weight.prevNeuron = neuron
 
     def createAandWMatrix(self):
-        aMatrix = np.zeros((len(self.neurons),1))
-        wMatrix = np.zeros((len(self.neurons[0].forwardWeights),len(self.neurons)))
-        for i in range(len(self.neurons)):
-            neuron = self.neurons[i]
-            aMatrix[i,0] = neuron.inputValue
-            for j in range(len(neuron.forwardWeights)):
-                wMatrix[j,i] = neuron.forwardWeights[j].weight
-        return (aMatrix,wMatrix)
-
-    def forwardPropogate(self,input):
-        self.inputVector = self.transformInput(input)
-        for i in range(len(self.neurons)):
-            neuron = self.neurons[i]
-            neuron.zValue = self.inputVector[i] if self.isFirstLayer else  self.inputVector[i]+neuron.bias
-            neuron.inputValue = neuron.zValue if self.isFirstLayer else  relu_single(neuron.zValue)
+        """Creates the activation (A) matrix and the weight (W) matrix."""
+        aMatrix = np.zeros((len(self.neurons), 1))
+        # Assume every neuron has the same number of forward weights if available.
+        if self.neurons and hasattr(self.neurons[0], 'forwardWeights'):
+            numWeights = len(self.neurons[0].forwardWeights)
+        else:
+            numWeights = 0
+        wMatrix = np.zeros((numWeights, len(self.neurons)))
         
-        self.combineOutput()
-        pass
+        for i, neuron in enumerate(self.neurons):
+            aMatrix[i, 0] = neuron.inputValue
+            for j, weight_obj in enumerate(neuron.forwardWeights):
+                wMatrix[j, i] = weight_obj.weight
+        
+        return aMatrix, wMatrix
 
-    def backPropogate(self,output,nextLayer : Layer = None ):
+    def forwardPropagate(self, input: np.ndarray):
+        """Forward propagates the input through the layer."""
+        self.inputVector = self.transformInput(input)
+        for i, neuron in enumerate(self.neurons):
+            if self.isFirstLayer:
+                neuron.zValue = self.inputVector[i]
+                neuron.inputValue = neuron.zValue
+            else:
+                neuron.zValue = self.inputVector[i] + neuron.bias
+                neuron.inputValue = sigmoid_single(neuron.zValue)
+        self.combineOutput()
+
+    def backPropagate(self, output, nextLayer: Layer = None):
+        """Back propagates the error through the layer."""
         errorForNextLayer = 0
-        if not self.isLastLayer and isinstance(nextLayer,FullyConnectedLayer):
+        if not self.isLastLayer and isinstance(nextLayer, FullyConnectedLayer):
             for neuron in nextLayer.neurons:
                 errorForNextLayer += neuron.error
-        for i in range(len(self.neurons)):
-            neuron = self.neurons[i]
-            error = 0
+
+        for i, neuron in enumerate(self.neurons):
+            # For the last layer, calculate error based on the target output.
             if self.isLastLayer:
-                error =  ErrorDerivative(neuron.inputValue,output[i])
+                error = error_derivative(neuron.inputValue, output[i])
             else:
                 error = errorForNextLayer
-            reluDerivativeValue = reluDerivative(neuron.zValue)
-            neuron.error = error*reluDerivativeValue
+            reluDerivativeValue = sigmoid_derivative(neuron.zValue)
+            neuron.error = error * reluDerivativeValue
             neuron.changeInBias = neuron.error
-            prevLayer= self.prevLayer
-            if isinstance(prevLayer,FullyConnectedLayer):
-                prevLayerNeurons = prevLayer.neurons
-                for prevNeuron in prevLayerNeurons:
-                    for weight in prevNeuron.forwardWeights:
-                        if isinstance(weight,Weight):
-                            weight.changeInWeight = neuron.error*prevNeuron.inputValue
-
+            print("Neuron error is "+str(neuron.error))
+            print("Neuron change in bias is "+str(neuron.changeInBias))
             
 
-    def updateWeightsAndBiases(self,learningRate):
+        # Update change in weight for each weight coming from the previous layer
+        if isinstance(self.prevLayer, FullyConnectedLayer):
+            for weight in self.weights:
+                nextNeuron = weight.nextNeuron
+                prevNeuron = weight.prevNeuron
+                weight.changeInWeight = nextNeuron.error * prevNeuron.inputValue
+                print("Change in weight is "+str(weight.changeInWeight))
+
+    def updateWeightsAndBiases(self, learningRate: float):
+        """Updates weights and biases using the specified learning rate."""
         for weight in self.weights:
-            weight.weight = weight.weight - learningRate*weight.changeInWeight
+            weight.weight -= learningRate * weight.changeInWeight
         for neuron in self.neurons:
-            neuron.bias = neuron.bias - learningRate*neuron.changeInBias
+            neuron.bias -= learningRate * neuron.changeInBias
 
     def combineOutput(self):
-        aMatrix,wMatrix = self.createAandWMatrix()
+        """Combines the layer's outputs into a matrix."""
+        aMatrix, wMatrix = self.createAandWMatrix()
         if not self.isLastLayer:
-            self.outputMatrix = np.dot(wMatrix,aMatrix)
+            self.outputMatrix = np.dot(wMatrix, aMatrix)
         else:
             self.outputMatrix = aMatrix
-        pass
 
-    def transformInput(self,input: np.ndarray):
-        return input.reshape(self.numberOfNuerons)
+    def transformInput(self, input: np.ndarray):
+        """Reshapes the input to match the number of neurons in this layer."""
+        return input.reshape(self.numberOfNeurons)

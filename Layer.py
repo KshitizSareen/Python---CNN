@@ -1,27 +1,35 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import numpy as np
 
-class Layer:
-
-
-    
-    @abstractmethod
-    def forwardPropogate(self,input):
-        pass
-
-    @abstractmethod
-    def backPropogate(self,outpu,nextLayer = None):
-        pass
-
-    @abstractmethod
-    def updateWeightsAndBiases(self,learningRate):
-        pass
-
-    @abstractmethod
-    def combineOutput(self):
-        pass
-
+class Layer(ABC):
     def __init__(self):
-        self.outputMatrix : np.ndarray
+        # Initialize outputMatrix as None until it is computed
+        self.outputMatrix: np.ndarray = None
+
+    @abstractmethod
+    def forwardPropagate(self, input: np.ndarray) -> None:
+        """
+        Performs forward propagation on the input.
+        """
         pass
 
+    @abstractmethod
+    def backPropagate(self, output: np.ndarray, nextLayer=None) -> None:
+        """
+        Performs backward propagation using the output and (optionally) the next layer.
+        """
+        pass
+
+    @abstractmethod
+    def updateWeightsAndBiases(self, learningRate: float) -> None:
+        """
+        Updates the weights and biases for the layer.
+        """
+        pass
+
+    @abstractmethod
+    def combineOutput(self) -> np.ndarray:
+        """
+        Combines intermediate outputs into the final output matrix.
+        """
+        pass
