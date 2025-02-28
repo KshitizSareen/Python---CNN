@@ -2,7 +2,7 @@ from Layer import Layer
 from Neuron import Neuron
 from Weight import Weight
 import numpy as np
-from static_functions import sigmoid_single, error_derivative, sigmoid_derivative
+from static_functions import relu_single, error_derivative, relu_derivative
 
 class FullyConnectedLayer(Layer):
 
@@ -59,7 +59,7 @@ class FullyConnectedLayer(Layer):
                 neuron.inputValue = neuron.zValue
             else:
                 neuron.zValue = self.inputVector[i] + neuron.bias
-                neuron.inputValue = sigmoid_single(neuron.zValue)
+                neuron.inputValue = relu_single(neuron.zValue)
         self.combineOutput()
 
     def backPropagate(self, output, nextLayer: Layer = None):
@@ -75,11 +75,9 @@ class FullyConnectedLayer(Layer):
                 error = error_derivative(neuron.inputValue, output[i])
             else:
                 error = errorForNextLayer
-            reluDerivativeValue = sigmoid_derivative(neuron.zValue)
+            reluDerivativeValue = relu_derivative(neuron.zValue)
             neuron.error = error * reluDerivativeValue
             neuron.changeInBias = neuron.error
-            print("Neuron error is "+str(neuron.error))
-            print("Neuron change in bias is "+str(neuron.changeInBias))
             
 
         # Update change in weight for each weight coming from the previous layer
@@ -88,14 +86,17 @@ class FullyConnectedLayer(Layer):
                 nextNeuron = weight.nextNeuron
                 prevNeuron = weight.prevNeuron
                 weight.changeInWeight = nextNeuron.error * prevNeuron.inputValue
-                print("Change in weight is "+str(weight.changeInWeight))
 
     def updateWeightsAndBiases(self, learningRate: float):
         """Updates weights and biases using the specified learning rate."""
         for weight in self.weights:
+            print("Weight pre update is "+str(weight.weight),"Change in weight is "+str(weight.changeInWeight))
             weight.weight -= learningRate * weight.changeInWeight
+            print("Updated weight is "+str(weight.weight))
         for neuron in self.neurons:
+            print("neuron bias pre update is "+str(neuron.bias),"Change in bias is "+str(neuron.changeInBias))
             neuron.bias -= learningRate * neuron.changeInBias
+            print("Updated bias is "+str(neuron.bias))
 
     def combineOutput(self):
         """Combines the layer's outputs into a matrix."""

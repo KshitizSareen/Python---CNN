@@ -36,6 +36,7 @@ class Network:
                 # Other layers: pass next layer as additional argument
                 nextLayer = self.layers[i + 1]
                 layer.backPropagate(output, nextLayer)
+            
 
     def updateWeightsAndBiases(self):
         """
@@ -84,4 +85,6 @@ class Network:
                 self.trainImage(image[0], image[1])
                 count += 1
                 print("Processed image count:", count)
+                if(count==10):
+                    break
             break

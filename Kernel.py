@@ -1,5 +1,5 @@
 import numpy as np
-from static_functions import sigmoid, sigmoid_derivative_matrix, convolve_matrix_with_filter
+from static_functions import relu, relu_derivative_matrix, convolve_matrix_with_filter
 
 class Kernel:
     def __init__(self, numRows: int, numCols: int, inputNumRows: int, inputNumCols: int):
@@ -73,7 +73,7 @@ class Kernel:
         """
         Apply the ReLU activation function to the zMatrix.
         """
-        self.activationMatrix = sigmoid(self.zMatrix)
+        self.activationMatrix = relu(self.zMatrix)
     
     def setErrorMatrix(self, nextLayerMatrix: np.ndarray):
         """
@@ -82,16 +82,10 @@ class Kernel:
 
         :param nextLayerMatrix: The error matrix propagated from the next layer.
         """
-        print("nextLayer Matrix is "+str(nextLayerMatrix))
-        print("z Matrix is "+str(self.zMatrix))
-        self.errorMatrix = nextLayerMatrix * sigmoid_derivative_matrix(self.zMatrix)
-        print("Error matrix is "+str(self.errorMatrix))
+        self.errorMatrix = nextLayerMatrix * relu_derivative_matrix(self.zMatrix)
         summedMatrix = np.sum(self.inputMatrix, axis=2)
-        print("Summed Matrix is "+str(summedMatrix))
         self.weightChangeMatrix = convolve_matrix_with_filter(summedMatrix, self.errorMatrix)
-        print("Weight change matrix is "+str(self.weightChangeMatrix))
         self.biasChange = np.sum(self.errorMatrix)
-        print("Bias change is "+str(self.biasChange))
     
     def updateKernelAndBias(self, learningRate: float):
         """
@@ -99,5 +93,9 @@ class Kernel:
 
         :param learningRate: The learning rate used for weight updates.
         """
+        print("Filter is "+str(self.filter),"Weight change is "+str(self.weightChangeMatrix))
         self.filter = self.filter - learningRate * self.weightChangeMatrix
+        print("Filter is "+str(self.filter))
+        print("Bias is "+str(self.bias),"Bias change is "+str(self.biasChange))
         self.bias = self.bias - learningRate * self.biasChange
+        print("Bias is "+str(self.bias))

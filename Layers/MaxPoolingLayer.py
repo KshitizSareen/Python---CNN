@@ -95,30 +95,28 @@ class MaxPoolingLayer(Layer):
                 for weight in neuron.forwardWeights:
                     nextNeuron = weight.nextNeuron
                     totalError += weight.weight * nextNeuron.error
-                print("total error is "+str(totalError))
                 errors.append(totalError)
         elif isinstance(nextLayer, ConvolutedLayer):
+            gradMatrix = np.zeros(self.outputMatrix.shape)
             for kernel in nextLayer.kernels:
                 rotatedFilter = np.flipud(np.fliplr(kernel.filter))
-                print("Rotated filter is "+str(rotatedFilter))
-                print("Kernel error matrix is "+str(kernel.errorMatrix))
                 full_convoluted_matrix = full_convolve2d(kernel.errorMatrix, rotatedFilter)
-                print("Full Convoluted Matrix is "+str(full_convoluted_matrix))
-                full_convoluted_matrix = full_convoluted_matrix.flatten()
-                for value in full_convoluted_matrix:
-                    errors.append(value)
+                numChannels = gradMatrix.shape[2]
+                for i in range(numChannels):
+                    gradMatrix[:,:,i]+=full_convoluted_matrix
+        gradMatrix=gradMatrix.flatten()
+        for i in range(len(gradMatrix)):
+            errors.append(gradMatrix[i])
                     
         numOfImages = self.inputMatrix.shape[2]
         # Initialize a gradient matrix with zeros.
         gradInput = np.zeros_like(self.inputMatrix)
 
-        print("Recorded positions are "+str(self.recordedPositions))
 
         for i in range(numOfImages):
             for pos in self.recordedPositions[i]:
                 if errors:
                     gradInput[pos[0], pos[1], i] = errors.popleft()
-            print("change matrix is "+str(gradInput[:,:,i]))
         self.inputMatrix = gradInput
 
     def updateWeightsAndBiases(self, learningRate: float):

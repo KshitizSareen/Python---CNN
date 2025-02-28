@@ -1,29 +1,29 @@
 import numpy as np
 
-def sigmoid(x: np.ndarray) -> np.ndarray:
+def relu(x: np.ndarray) -> np.ndarray:
     """
-    Apply the sigmoid activation function element-wise to the input array.
+    Apply the ReLU activation function element-wise to the input array.
 
     Parameters:
         x (np.ndarray): Input array.
 
     Returns:
-        np.ndarray: An array where each element is transformed by the sigmoid function.
+        np.ndarray: An array where each element is max(0, element of x).
     """
-    return 1 / (1 + np.exp(-x))
+    return np.maximum(0, x)
 
 
-def sigmoid_single(x: float) -> float:
+def relu_single(x: float) -> float:
     """
-    Apply the sigmoid activation function to a single value.
+    Apply the ReLU activation function to a single value.
 
     Parameters:
         x (float): A numeric value.
 
     Returns:
-        float: Sigmoid of x.
+        float: max(0, x).
     """
-    return 1 / (1 + np.exp(-x))
+    return max(0, x)
 
 
 def error_derivative(input_val: float, output_val: float) -> float:
@@ -42,33 +42,30 @@ def error_derivative(input_val: float, output_val: float) -> float:
     return input_val - output_val
 
 
-def sigmoid_derivative(x: float) -> float:
+def relu_derivative(x: float) -> int:
     """
-    Compute the derivative of the sigmoid function for a single value.
+    Compute the derivative of the ReLU function for a single value.
 
     Parameters:
         x (float): A numeric value.
 
     Returns:
-        float: The derivative, computed as sigmoid(x) * (1 - sigmoid(x)).
+        int: 1 if x > 0, otherwise 0.
     """
-    sig = 1 / (1 + np.exp(-x))
-    return sig * (1 - sig)
+    return 1 if x > 0 else 0.01
 
 
-def sigmoid_derivative_matrix(x: np.ndarray) -> np.ndarray:
+def relu_derivative_matrix(x: np.ndarray) -> np.ndarray:
     """
-    Compute the derivative of the sigmoid function element-wise for a matrix.
+    Compute the derivative of the ReLU function element-wise for a matrix.
 
     Parameters:
         x (np.ndarray): Input array.
 
     Returns:
-        np.ndarray: An array where each element is the derivative of the sigmoid function,
-                    computed as sigmoid(x) * (1 - sigmoid(x)).
+        np.ndarray: An array where each element is 1 if the corresponding element in x is greater than 0, otherwise 0.
     """
-    sig = 1 / (1 + np.exp(-x))
-    return sig * (1 - sig)
+    return np.where(x > 0, 1, 0.01)
 
 
 def mean_square_error(input_vector: np.ndarray, output_vector: np.ndarray) -> float:
@@ -145,3 +142,15 @@ def full_convolve2d(input_matrix: np.ndarray, filter_: np.ndarray) -> np.ndarray
             region = padded_image[i:i + k_height, j:j + k_width]
             output[i, j] = np.sum(region * filter_)
     return output
+
+
+def generate_random_filters(self, SEED) -> None:
+    """
+    Generates 'num_filters' random filters with shape (_filterSize, _filterSize)
+    drawn from a Gaussian (normal) distribution, and assigns them to self._filters.
+    """
+
+
+    # Generate a random value between low (inclusive) and high (exclusive)
+    random_value = np.random.uniform(0, SEED)
+    return random_value
